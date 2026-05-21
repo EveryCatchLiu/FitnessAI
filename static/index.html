@@ -1,0 +1,704 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FitnessAI · 健康饮食管理</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+	<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<style>
+  :root {
+    --bg: #f3efe7;
+    --card: #fdfaf5;
+    --card-hover: #fefdfb;
+    --primary: #2d6a4f;
+    --primary-light: #40916c;
+    --primary-bg: #e8f5e9;
+    --accent: #c47b5a;
+    --accent-light: #e8a87c;
+    --text: #3d3929;
+    --text-secondary: #8b8680;
+    --text-muted: #b0aba3;
+    --border: #e6e0d8;
+    --border-light: #f0ebe3;
+    --radius: 18px;
+    --radius-sm: 12px;
+    --font-display: 'Cormorant Garamond', 'Noto Serif SC', 'STSong', 'Songti SC', serif;
+    --font-body: 'Inter', 'PingFang SC', 'Microsoft YaHei', 'Hiragino Sans GB', -apple-system, sans-serif;
+    --shadow: 0 2px 16px rgba(45,106,79,0.06), 0 4px 8px rgba(0,0,0,0.03);
+    --shadow-hover: 0 8px 30px rgba(45,106,79,0.10), 0 4px 12px rgba(0,0,0,0.05);
+    --transition: 0.3s cubic-bezier(0.22, 0.61, 0.36, 1);
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: var(--font-body);
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.6;
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* Subtle noise texture */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    opacity: 0.4;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+    background-size: 200px 200px;
+    pointer-events: none;
+  }
+
+  .container { max-width: 1120px; margin: 0 auto; padding: 32px 24px 48px; }
+
+  /* ---- Header ---- */
+  .header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 20px 0 32px; flex-wrap: wrap; gap: 16px;
+  }
+  .header-brand { display: flex; align-items: center; gap: 14px; }
+  .header-logo {
+    width: 46px; height: 46px; background: var(--primary-bg);
+    border-radius: 14px; display: flex; align-items: center; justify-content: center;
+    font-size: 24px; box-shadow: 0 2px 12px rgba(45,106,79,0.12);
+  }
+  .header h1 {
+    font-family: var(--font-display);
+    font-size: 36px; font-weight: 600; color: var(--primary);
+    letter-spacing: -0.01em;
+  }
+  .header .tagline { font-size: 15px; color: var(--text-secondary); margin-top: -2px; }
+  .header-actions { display: flex; gap: 10px; }
+
+  /* ---- Buttons ---- */
+  .btn {
+    display: inline-flex; align-items: center; gap: 7px;
+    padding: 12px 24px; border: none; border-radius: 12px;
+    font-family: var(--font-body); font-size: 15px; font-weight: 600;
+    cursor: pointer; transition: var(--transition); white-space: nowrap;
+    letter-spacing: 0.01em;
+  }
+  .btn-pri {
+    background: var(--primary); color: #fff;
+    box-shadow: 0 2px 8px rgba(45,106,79,0.25);
+  }
+  .btn-pri:hover { background: var(--primary-light); box-shadow: 0 6px 20px rgba(45,106,79,0.35); transform: translateY(-1px); }
+  .btn-pri:disabled { background: #a5d6a7; box-shadow: none; cursor: not-allowed; transform: none; }
+  .btn-sec {
+    background: var(--card); color: var(--text); border: 1px solid var(--border);
+    box-shadow: var(--shadow);
+  }
+  .btn-sec:hover { background: var(--card-hover); border-color: var(--primary); color: var(--primary); }
+  .btn-save {
+    background: var(--primary-bg); color: var(--primary); font-weight: 700;
+    border: 1px solid #c8e6c9;
+  }
+  .btn-save:hover { background: #c8e6c9; }
+
+  /* ---- Stat Cards ---- */
+  .stat-grid {
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px;
+  }
+  .stat-card {
+    background: var(--card); border-radius: var(--radius); padding: 22px 20px;
+    box-shadow: var(--shadow); transition: var(--transition);
+    position: relative; overflow: hidden;
+  }
+  .stat-card::after {
+    content: ''; position: absolute; top: 0; left: 0; width: 4px; height: 100%;
+    border-radius: 4px 0 0 4px; opacity: 0.7;
+  }
+  .stat-card:hover { box-shadow: var(--shadow-hover); transform: translateY(-2px); }
+  .stat-card .stat-label {
+    font-size: 13px; font-weight: 600; text-transform: uppercase;
+    letter-spacing: 0.06em; color: var(--text-secondary); margin-bottom: 8px;
+  }
+  .stat-card .stat-value {
+    font-family: var(--font-display); font-size: 46px; font-weight: 600;
+    line-height: 1; margin-bottom: 6px;
+  }
+  .stat-card .stat-sub { font-size: 14px; color: var(--text-secondary); }
+  .stat-card:nth-child(1)::after { background: var(--primary); }
+  .stat-card:nth-child(1) .stat-value { color: var(--primary); }
+  .stat-card:nth-child(2)::after { background: #7b5ea7; }
+  .stat-card:nth-child(2) .stat-value { color: #7b5ea7; }
+  .stat-card:nth-child(3)::after { background: var(--accent); }
+  .stat-card:nth-child(3) .stat-value { color: var(--accent); }
+  .stat-card:nth-child(4)::after { background: #2d6a4f; }
+  .stat-card:nth-child(4) .stat-value { color: #2d6a4f; }
+
+  /* Stat entrance animation */
+  .stat-card { animation: cardRise 0.6s ease both; }
+  .stat-card:nth-child(1) { animation-delay: 0.05s; }
+  .stat-card:nth-child(2) { animation-delay: 0.15s; }
+  .stat-card:nth-child(3) { animation-delay: 0.25s; }
+  .stat-card:nth-child(4) { animation-delay: 0.35s; }
+  @keyframes cardRise {
+    from { opacity: 0; transform: translateY(16px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ---- Main Layout ---- */
+  .main-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-bottom: 22px; }
+  .card {
+    background: var(--card); border-radius: var(--radius); padding: 24px;
+    box-shadow: var(--shadow); transition: var(--transition);
+  }
+  .card:hover { box-shadow: var(--shadow-hover); }
+  .card-title {
+    font-family: var(--font-display); font-size: 21px; font-weight: 600;
+    color: var(--primary); margin-bottom: 16px; display: flex; align-items: center; gap: 8px;
+  }
+  .card-title .icon { font-size: 22px; }
+
+  /* ---- Upload Zone ---- */
+  .upload-zone {
+    border: 2px dashed var(--border); border-radius: var(--radius-sm);
+    padding: 36px 20px; text-align: center; cursor: pointer;
+    transition: var(--transition); margin-bottom: 16px;
+    background: linear-gradient(180deg, #fdfaf5 0%, #faf7f1 100%);
+  }
+  .upload-zone:hover, .upload-zone.dragover {
+    border-color: var(--primary); background: var(--primary-bg);
+    border-style: solid; transform: scale(1.01);
+  }
+  .upload-zone .upload-icon { font-size: 40px; margin-bottom: 10px; display: block; }
+  .upload-zone .upload-text { font-size: 16px; color: var(--text); font-weight: 500; }
+  .upload-zone .upload-hint { font-size: 13px; color: var(--text-muted); margin-top: 4px; }
+  .upload-zone img {
+    max-width: 100%; max-height: 200px; border-radius: 10px;
+    object-fit: cover; display: none;
+  }
+
+  select {
+    padding: 11px 16px; border: 1px solid var(--border); border-radius: var(--radius-sm);
+    font-family: var(--font-body); font-size: 15px; font-weight: 500;
+    background: var(--card); color: var(--text); outline: none;
+    cursor: pointer; transition: var(--transition);
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' fill='none'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%238b8680' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat; background-position: right 14px center;
+    padding-right: 36px;
+  }
+  select:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(45,106,79,0.1); }
+
+  .controls-row { display: flex; gap: 10px; align-items: center; }
+
+  /* ---- Result Panel ---- */
+  .result-panel {
+    background: var(--primary-bg); border-radius: var(--radius-sm);
+    padding: 16px; min-height: 60px; transition: var(--transition);
+  }
+  .result-panel table { width: 100%; font-size: 15px; border-collapse: collapse; }
+  .result-panel td { padding: 8px 8px; }
+  .result-panel td:last-child { text-align: right; font-weight: 600; font-family: var(--font-display); font-size: 18px; }
+  .result-panel .total-row {
+    border-top: 1px solid #c8e6c9; padding-top: 10px; margin-top: 8px;
+    display: flex; justify-content: space-between; font-weight: 700;
+    font-family: var(--font-display); font-size: 20px;
+  }
+  .result-empty { color: var(--text-muted); text-align: center; padding: 28px; font-size: 15px; }
+
+  /* ---- Chart ---- */
+  .chart-wrap { position: relative; height: 280px; padding: 8px 0; }
+  .chart-wrap canvas { width: 100% !important; }
+
+  /* ---- Advice ---- */
+  .advice-btns { display: flex; gap: 10px; margin-bottom: 14px; }
+  .advice-content {
+    background: linear-gradient(135deg, #fdf5ef 0%, #fef9f4 100%);
+    border: 1px solid #f0dbca; border-radius: var(--radius-sm);
+    padding: 18px; font-size: 15px; line-height: 1.75;
+    min-height: 60px; color: #5c4328;
+  }
+  .advice-content > *:first-child { margin-top: 0; }
+  .advice-content > *:last-child { margin-bottom: 0; }
+  .advice-content h1, .advice-content h2, .advice-content h3 { font-family: var(--font-display); color: var(--primary); margin: 1.2em 0 0.5em; font-weight: 600; }
+  .advice-content h1 { font-size: 1.4em; }
+  .advice-content h2 { font-size: 1.2em; }
+  .advice-content h3 { font-size: 1.05em; }
+  .advice-content strong { color: #4a3520; font-weight: 700; }
+  .advice-content em { color: var(--accent); font-style: italic; }
+  .advice-content ul, .advice-content ol { padding-left: 1.5em; margin: 0.6em 0; }
+  .advice-content li { margin-bottom: 0.3em; }
+  .advice-content li::marker { color: var(--primary); }
+  .advice-content p { margin: 0.6em 0; }
+  .advice-content code { background: rgba(45,106,79,0.08); padding: 2px 6px; border-radius: 4px; font-size: 0.9em; }
+  .advice-content blockquote { border-left: 3px solid var(--primary-light); padding-left: 12px; margin: 0.8em 0; color: var(--text-secondary); }
+  .advice-content hr { border: none; border-top: 1px solid var(--border); margin: 1em 0; }
+
+  /* ---- Meal Table ---- */
+  .meal-table { width: 100%; font-size: 15px; border-collapse: collapse; }
+  .meal-table th {
+    text-align: left; padding: 12px 10px; border-bottom: 2px solid var(--border);
+    color: var(--text-secondary); font-weight: 700; font-size: 13px;
+    text-transform: uppercase; letter-spacing: 0.05em;
+  }
+  .meal-table td { padding: 12px 10px; border-bottom: 1px solid var(--border-light); }
+  .meal-table td:last-child, .meal-table th:last-child { text-align: right; }
+  .meal-table tbody tr { transition: background 0.2s; }
+  .meal-table tbody tr:hover { background: #fefbf7; }
+  .meal-table .empty-row { text-align: center; color: var(--text-muted); padding: 32px; }
+
+  /* ---- Modal ---- */
+  .modal-overlay {
+    display: none; position: fixed; inset: 0; z-index: 100;
+    align-items: center; justify-content: center;
+  }
+  .modal-overlay.open { display: flex; }
+  .modal-bg {
+    position: absolute; inset: 0; background: rgba(61,57,41,0.3);
+    backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+  }
+  .modal {
+    position: relative; background: var(--card); border-radius: var(--radius);
+    padding: 32px; width: 90%; max-width: 540px; z-index: 101;
+    box-shadow: 0 24px 80px rgba(0,0,0,0.18);
+    animation: modalIn 0.35s cubic-bezier(0.22, 0.61, 0.36, 1);
+  }
+  @keyframes modalIn { from { opacity: 0; transform: scale(0.94) translateY(20px); } to { opacity: 1; transform: scale(1) translateY(0); } }
+  .modal h2 { font-family: var(--font-display); font-size: 26px; font-weight: 600; color: var(--primary); margin-bottom: 24px; }
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .form-group { display: flex; flex-direction: column; gap: 5px; }
+  .form-group label {
+    font-size: 13px; font-weight: 700; color: var(--text-secondary);
+    text-transform: uppercase; letter-spacing: 0.05em;
+  }
+  .form-group input, .form-group select {
+    padding: 11px 14px; border: 1px solid var(--border); border-radius: var(--radius-sm);
+    font-family: var(--font-body); font-size: 16px; color: var(--text);
+    outline: none; transition: var(--transition); background: #fdfaf5;
+  }
+  .form-group input:focus, .form-group select:focus {
+    border-color: var(--primary); box-shadow: 0 0 0 3px rgba(45,106,79,0.1);
+  }
+  .form-group.full { grid-column: 1 / -1; }
+  .modal-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 28px; }
+
+  /* ---- Toast ---- */
+  .toast {
+    position: fixed; bottom: 32px; left: 50%; transform: translateX(-50%);
+    padding: 14px 30px; border-radius: 14px; font-size: 15px; font-weight: 600;
+    z-index: 200; opacity: 0; pointer-events: none;
+    transition: opacity 0.35s ease, transform 0.35s ease;
+    font-family: var(--font-body); box-shadow: 0 8px 30px rgba(0,0,0,0.15);
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(-8px); }
+  .toast.success { background: #2d6a4f; color: #fff; }
+  .toast.error { background: #c43d3d; color: #fff; }
+
+  /* ---- Spinner ---- */
+  .spinner {
+    display: none; width: 18px; height: 18px;
+    border: 2px solid rgba(255,255,255,0.25); border-top-color: #fff;
+    border-radius: 50%; animation: spin 0.6s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ---- Responsive ---- */
+  @media (max-width: 860px) {
+    .stat-grid { grid-template-columns: repeat(2, 1fr); }
+    .main-grid { grid-template-columns: 1fr; }
+    .header { flex-direction: column; text-align: center; }
+  }
+  @media (max-width: 500px) {
+    .stat-grid { grid-template-columns: 1fr 1fr; gap: 10px; }
+    .stat-card .stat-value { font-size: 28px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <!-- Header -->
+  <div class="header">
+    <div class="header-brand">
+      <div class="header-logo">🥬</div>
+      <div>
+        <h1>FitnessAI</h1>
+        <p class="tagline">智能健康饮食，从每一餐开始</p>
+      </div>
+    </div>
+    <div class="header-actions">
+      <button class="btn btn-sec" onclick="openProfileModal()">⚙️ 个人档案</button>
+      <button class="btn btn-sec" onclick="refreshAll()">↻ 刷新数据</button>
+    </div>
+  </div>
+
+  <!-- Stat Cards -->
+  <div class="stat-grid" id="statCards">
+    <div class="stat-card">
+      <div class="stat-label">BMI 指数</div>
+      <div class="stat-value" id="statBmi">—</div>
+      <div class="stat-sub" id="statBmiCat">设置档案后计算</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">基础代谢率</div>
+      <div class="stat-value" id="statBmr">—</div>
+      <div class="stat-sub">kcal / 天</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">每日目标</div>
+      <div class="stat-value" id="statTarget">—</div>
+      <div class="stat-sub">kcal / 天</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">今日已摄入</div>
+      <div class="stat-value" id="statToday">0</div>
+      <div class="stat-sub" id="statRemaining">剩余 — kcal</div>
+    </div>
+  </div>
+
+  <!-- Main Grid: Food Upload + Result -->
+  <div class="main-grid">
+    <div class="card">
+      <div class="card-title"><span class="icon">📷</span>食物热量识别</div>
+      <div class="upload-zone" id="uploadZone" onclick="document.getElementById('foodImage').click()">
+        <span class="upload-icon">🥗</span>
+        <div class="upload-text">点击或拖拽上传食物照片</div>
+        <div class="upload-hint">支持 JPG / PNG / WEBP 格式</div>
+        <img id="previewImg" alt="">
+      </div>
+      <input type="file" id="foodImage" accept="image/*" style="display:none" onchange="handleImageSelect(event)">
+      <div class="controls-row">
+        <select id="mealType">
+          <option value="breakfast">🌅 早餐</option>
+          <option value="lunch" selected>☀️ 午餐</option>
+          <option value="dinner">🌙 晚餐</option>
+          <option value="snack">🍪 加餐</option>
+        </select>
+        <button class="btn btn-pri" id="recognizeBtn" onclick="recognizeFood()">
+          <span class="spinner" id="recognizeSpinner"></span> 识别热量
+        </button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><span class="icon">📋</span>识别结果</div>
+      <div class="result-panel" id="resultPanel">
+        <div class="result-empty">识别结果将显示在这里</div>
+      </div>
+      <button class="btn btn-save" id="saveBtn" style="margin-top:14px;width:100%;justify-content:center;display:none;" onclick="saveMeal()">
+        ✓ 记录到今日饮食
+      </button>
+    </div>
+  </div>
+
+  <!-- Weekly Chart -->
+  <div class="card" style="margin-bottom:22px;">
+    <div class="card-title"><span class="icon">📊</span>近 7 天热量趋势</div>
+    <div class="chart-wrap"><canvas id="weeklyChart"></canvas></div>
+  </div>
+
+  <!-- Bottom Grid: AI Advice + Meal Records -->
+  <div class="main-grid">
+    <div class="card">
+      <div class="card-title"><span class="icon">🧠</span>AI 健康顾问</div>
+      <div class="advice-btns">
+        <button class="btn btn-pri" style="flex:1;justify-content:center;" id="dietBtn" onclick="getAdvice('diet')">🍽 饮食建议</button>
+        <button class="btn btn-sec" style="flex:1;justify-content:center;" id="exerciseBtn" onclick="getAdvice('exercise')">🏃 运动指导</button>
+      </div>
+      <div class="advice-content" id="adviceContent">点击上方按钮获取 AI 个性化建议</div>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><span class="icon">📝</span>今日饮食记录</div>
+      <table class="meal-table">
+        <thead><tr><th>时间</th><th>食物</th><th>份量</th><th>热量</th></tr></thead>
+        <tbody id="mealTableBody"><tr><td colspan="4" class="empty-row">暂无记录，识别食物后保存即可看到</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- Profile Modal -->
+<div class="modal-overlay" id="profileModal">
+  <div class="modal-bg" onclick="closeProfileModal()"></div>
+  <div class="modal">
+    <h2>⚙️ 个人健康档案</h2>
+    <div class="form-grid">
+      <div class="form-group">
+        <label>性别</label>
+        <select id="profGender"><option value="男">男性</option><option value="女">女性</option></select>
+      </div>
+      <div class="form-group">
+        <label>年龄</label>
+        <input type="number" id="profAge" value="25" min="10" max="120" placeholder="25">
+      </div>
+      <div class="form-group">
+        <label>身高 (cm)</label>
+        <input type="number" id="profHeight" value="170" min="100" max="250" placeholder="170">
+      </div>
+      <div class="form-group">
+        <label>当前体重 (kg)</label>
+        <input type="number" id="profWeight" value="70" min="20" max="300" step="0.1" placeholder="70">
+      </div>
+      <div class="form-group">
+        <label>目标体重 (kg)</label>
+        <input type="number" id="profTargetWeight" value="70" min="20" max="300" step="0.1" placeholder="70">
+      </div>
+      <div class="form-group">
+        <label>目标方向</label>
+        <select id="profGoal">
+          <option value="保持">🟰 保持体重</option>
+          <option value="减重">🔽 健康减重</option>
+          <option value="增重">🔼 科学增重</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-sec" onclick="closeProfileModal()">取消</button>
+      <button class="btn btn-pri" onclick="saveProfile()">保存档案</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ---- State ----
+let lastRecognition = [];
+let weeklyChart = null;
+
+// ---- Init ----
+document.addEventListener('DOMContentLoaded', () => {
+  setupDragDrop();
+  refreshAll();
+});
+
+// ---- Drag & Drop ----
+function setupDragDrop() {
+  const zone = document.getElementById('uploadZone');
+  zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('dragover'); });
+  zone.addEventListener('dragleave', () => zone.classList.remove('dragover'));
+  zone.addEventListener('drop', e => {
+    e.preventDefault(); zone.classList.remove('dragover');
+    const f = e.dataTransfer.files[0];
+    if (f && f.type.startsWith('image/')) { document.getElementById('foodImage').files = e.dataTransfer.files; showPreview(f); }
+  });
+}
+
+function handleImageSelect(e) { const f = e.target.files[0]; if (f) showPreview(f); }
+
+function showPreview(file) {
+  const r = new FileReader();
+  r.onload = e => {
+    const img = document.getElementById('previewImg');
+    img.src = e.target.result; img.style.display = 'block';
+    const zone = document.getElementById('uploadZone');
+    zone.querySelector('.upload-icon').style.display = 'none';
+    zone.querySelector('.upload-text').style.display = 'none';
+    zone.querySelector('.upload-hint').style.display = 'none';
+  };
+  r.readAsDataURL(file);
+}
+
+// ---- Toast ----
+function showToast(msg, type) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.className = 'toast ' + type + ' show';
+  clearTimeout(t._tid); t._tid = setTimeout(() => t.classList.remove('show'), 2600);
+}
+
+// ---- Stats ----
+async function loadStats() {
+  try {
+    const res = await fetch('/api/stats'); const d = await res.json();
+    document.getElementById('statBmi').textContent = d.bmi || '—';
+    document.getElementById('statBmr').textContent = d.bmr || '—';
+    document.getElementById('statTarget').textContent = d.target_kcal || '—';
+    document.getElementById('statToday').textContent = d.today_kcal;
+    const rem = Math.round((d.target_kcal - d.today_kcal) * 10) / 10;
+    document.getElementById('statRemaining').textContent = `剩余 ${rem} kcal`;
+    let cat = '';
+    if (!d.bmi) cat = '设置档案后计算';
+    else if (d.bmi < 18.5) cat = '偏瘦';
+    else if (d.bmi < 24) cat = '正常范围';
+    else if (d.bmi < 28) cat = '偏重';
+    else cat = '偏重';
+    document.getElementById('statBmiCat').textContent = cat;
+  } catch(e) { console.error('loadStats', e); }
+}
+
+// ---- Chart ----
+async function loadChart() {
+  try {
+    const res = await fetch('/api/daily-summary?days=7'); const data = await res.json();
+    const labels = data.map(d => d.date.slice(5));
+    const values = data.map(d => d.total_kcal);
+    const colors = values.map(v => v > 2000 ? '#d4795a' : v > 1800 ? '#e8a87c' : '#2d6a4f');
+
+    if (weeklyChart) weeklyChart.destroy();
+    const ctx = document.getElementById('weeklyChart').getContext('2d');
+
+    const gradient = ctx.createLinearGradient(0, 0, 0, 280);
+    gradient.addColorStop(0, 'rgba(45,106,79,0.12)');
+    gradient.addColorStop(1, 'rgba(45,106,79,0.0)');
+
+    weeklyChart = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels,
+        datasets: [{
+          data: values, backgroundColor: colors,
+          borderRadius: 8, borderSkipped: false, barPercentage: 0.65,
+        }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            backgroundColor: '#3d3929', titleFont: { family: 'Inter' },
+            bodyFont: { family: 'Cormorant Garamond', size: 15 },
+            padding: 14, cornerRadius: 10,
+            callbacks: { label: ctx => ' ' + ctx.raw + ' kcal' }
+          }
+        },
+        scales: {
+          x: { grid: { display: false }, ticks: { font: { family: 'Inter', size: 11 }, color: '#8b8680' } },
+          y: {
+            beginAtZero: true, grid: { color: '#f0ebe3' },
+            ticks: { font: { family: 'Inter', size: 11 }, color: '#8b8680', callback: v => v },
+            title: { display: true, text: 'kcal', font: { family: 'Inter', size: 11 }, color: '#b0aba3' }
+          }
+        }
+      }
+    });
+  } catch(e) { console.error('loadChart', e); }
+}
+
+// ---- Meal Table ----
+async function loadMealTable() {
+  try {
+    const res = await fetch('/api/meals?days=1'); const records = await res.json();
+    const today = new Date().toISOString().slice(0, 10);
+    const todayRecords = records.filter(r => (r.recorded_at || '').startsWith(today));
+    const tbody = document.getElementById('mealTableBody');
+    if (!todayRecords.length) {
+      tbody.innerHTML = '<tr><td colspan="4" class="empty-row">暂无记录，识别食物后保存即可看到</td></tr>';
+      return;
+    }
+    tbody.innerHTML = todayRecords.map(r => {
+      const time = (r.recorded_at || '').slice(11, 16) || '--:--';
+      return `<tr><td>${time}</td><td>${r.food_name}</td><td>${r.weight_grams}g</td><td style="text-align:right;font-weight:600;">${r.kcal} kcal</td></tr>`;
+    }).join('');
+  } catch(e) { console.error('loadMealTable', e); }
+}
+
+// ---- Food Recognition ----
+async function recognizeFood() {
+  const file = document.getElementById('foodImage').files[0];
+  if (!file) { showToast('请先上传一张食物图片', 'error'); return; }
+
+  const btn = document.getElementById('recognizeBtn');
+  const sp = document.getElementById('recognizeSpinner');
+  btn.disabled = true; sp.style.display = 'inline-block';
+
+  try {
+    const fd = new FormData(); fd.append('image', file);
+    const res = await fetch('/api/recognize-food', { method: 'POST', body: fd });
+    const data = await res.json();
+    if (data.error) { showToast('识别失败: ' + data.error, 'error'); return; }
+    lastRecognition = data.items;
+
+    const panel = document.getElementById('resultPanel');
+    if (!data.items?.length) {
+      panel.innerHTML = '<div class="result-empty">未识别到食物，请换一张清晰的照片重试</div>';
+      document.getElementById('saveBtn').style.display = 'none';
+      return;
+    }
+
+    let rows = '';
+    data.items.forEach(item => {
+      rows += `<tr><td>${item.name || '?'}</td><td>${item.weight || 0}g</td><td>${(item.kcal || 0)} kcal</td></tr>`;
+    });
+    panel.innerHTML = `<table>${rows}</table><div class="total-row"><span>合计</span><span>${data.total_kcal} kcal</span></div>`;
+    document.getElementById('saveBtn').style.display = 'flex';
+  } catch(e) {
+    showToast('识别出错: ' + e.message, 'error');
+  } finally {
+    btn.disabled = false; sp.style.display = 'none';
+  }
+}
+
+// ---- Save Meal ----
+async function saveMeal() {
+  if (!lastRecognition.length) { showToast('没有可保存的识别数据', 'error'); return; }
+  const mealType = document.getElementById('mealType').value;
+
+  try {
+    await fetch('/api/meals', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ records: lastRecognition, meal_type: mealType })
+    });
+    showToast('已记录到今日饮食 ✓', 'success');
+    document.getElementById('saveBtn').style.display = 'none';
+    document.getElementById('resultPanel').innerHTML = '<div class="result-empty">识别结果将显示在这里</div>';
+    lastRecognition = [];
+    await Promise.all([loadStats(), loadChart(), loadMealTable()]);
+  } catch(e) { showToast('保存失败: ' + e.message, 'error'); }
+}
+
+// ---- AI Advice ----
+async function getAdvice(type) {
+  const content = document.getElementById('adviceContent');
+  content.innerHTML = '<span style="color: var(--text-muted);">⏳ 正在生成个性化建议...</span>';
+  try {
+    const res = await fetch(`/api/advice/${type}`);
+    const data = await res.json();
+    const text = data.advice || '暂时无法生成建议，请确认已设置个人档案后再试。';
+    content.innerHTML = marked.parse(text);
+  } catch(e) { content.innerHTML = '<span style="color: var(--text-muted);">网络请求失败，请稍后重试。</span>'; }
+}
+
+// ---- Profile ----
+async function openProfileModal() {
+  document.getElementById('profileModal').classList.add('open');
+  try {
+    const res = await fetch('/api/profile'); const p = await res.json();
+    if (p) {
+      document.getElementById('profGender').value = p.gender;
+      document.getElementById('profAge').value = p.age;
+      document.getElementById('profHeight').value = p.height_cm;
+      document.getElementById('profWeight').value = p.weight_kg;
+      document.getElementById('profTargetWeight').value = p.target_weight_kg;
+      document.getElementById('profGoal').value = p.goal;
+    }
+  } catch(e) {}
+}
+
+function closeProfileModal() { document.getElementById('profileModal').classList.remove('open'); }
+
+async function saveProfile() {
+  const data = {
+    gender: document.getElementById('profGender').value,
+    age: parseInt(document.getElementById('profAge').value),
+    height_cm: parseFloat(document.getElementById('profHeight').value),
+    weight_kg: parseFloat(document.getElementById('profWeight').value),
+    target_weight_kg: parseFloat(document.getElementById('profTargetWeight').value),
+  };
+  try {
+    await fetch('/api/profile', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
+    closeProfileModal();
+    showToast('档案已保存 ✓', 'success');
+    await refreshAll();
+  } catch(e) { showToast('保存失败: ' + e.message, 'error'); }
+}
+
+// ---- Refresh ----
+async function refreshAll() {
+  await Promise.all([loadStats(), loadChart(), loadMealTable()]);
+}
+</script>
+</body>
+</html>
