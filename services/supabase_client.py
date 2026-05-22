@@ -50,6 +50,13 @@ def get_meal_records(days: int = 7) -> list[dict]:
     return result.data or []
 
 
+def delete_meal_record(record_id: int) -> bool:
+    """Delete a meal record by ID. Returns True if successful."""
+    client = get_client()
+    result = client.table("meal_records").delete().eq("id", record_id).execute()
+    return bool(result.data)
+
+
 def get_daily_summary(days: int = 7) -> list[dict]:
     """Get per-day calorie totals for the last N days."""
     from datetime import datetime, timedelta

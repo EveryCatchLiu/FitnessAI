@@ -242,10 +242,16 @@
     text-transform: uppercase; letter-spacing: 0.05em;
   }
   .meal-table td { padding: 12px 10px; border-bottom: 1px solid var(--border-light); }
-  .meal-table td:last-child, .meal-table th:last-child { text-align: right; }
+  .meal-table td:nth-child(4), .meal-table th:nth-child(4) { text-align: right; }
   .meal-table tbody tr { transition: background 0.2s; }
   .meal-table tbody tr:hover { background: #fefbf7; }
   .meal-table .empty-row { text-align: center; color: var(--text-muted); padding: 32px; }
+  .btn-del {
+    background: none; border: none; color: var(--text-muted); cursor: pointer;
+    font-size: 14px; padding: 2px 6px; border-radius: 4px; transition: var(--transition);
+    line-height: 1;
+  }
+  .btn-del:hover { color: #c43d3d; background: rgba(196,61,61,0.08); }
 
   /* ---- Modal ---- */
   .modal-overlay {
@@ -411,7 +417,7 @@
     <div class="card">
       <div class="card-title"><span class="icon">📝</span>今日饮食记录</div>
       <table class="meal-table">
-        <thead><tr><th>时间</th><th>食物</th><th>份量</th><th>热量</th></tr></thead>
+        <thead><tr><th>时间</th><th>食物</th><th>份量</th><th>热量</th><th>操作</th></tr></thead>
         <tbody id="mealTableBody"><tr><td colspan="4" class="empty-row">暂无记录，识别食物后保存即可看到</td></tr></tbody>
       </table>
     </div>
@@ -584,14 +590,32 @@ async function loadMealTable() {
     const todayRecords = records.filter(r => (r.recorded_at || '').startsWith(today));
     const tbody = document.getElementById('mealTableBody');
     if (!todayRecords.length) {
-      tbody.innerHTML = '<tr><td colspan="4" class="empty-row">暂无记录，识别食物后保存即可看到</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="5" class="empty-row">暂无记录，识别食物后保存即可看到</td></tr>';
       return;
     }
     tbody.innerHTML = todayRecords.map(r => {
       const time = (r.recorded_at || '').slice(11, 16) || '--:--';
-      return `<tr><td>${time}</td><td>${r.food_name}</td><td>${r.weight_grams}g</td><td style="text-align:right;font-weight:600;">${r.kcal} kcal</td></tr>`;
+      return `<tr>
+        <td>${time}</td><td>${r.food_name}</td><td>${r.weight_grams}g</td>
+        <td style="text-align:right;font-weight:600;">${r.kcal} kcal</td>
+        <td style="text-align:center;"><button class="btn-del" onclick="deleteMeal(${r.id})" title="删除记录">✕</button></td>
+      </tr>`;
     }).join('');
   } catch(e) { console.error('loadMealTable', e); }
+}
+
+async function deleteMeal(id) {
+  if (!confirm('确定要删除这条饮食记录吗？')) return;
+  try {
+    const res = await fetch(`/api/meals/${id}`, { method: 'DELETE' });
+    const data = await res.json();
+    if (data.status === 'ok') {
+      showToast('已删除记录 ✓', 'success');
+      await Promise.all([loadStats(), loadChart(), loadMealTable()]);
+    } else {
+      showToast('删除失败', 'error');
+    }
+  } catch(e) { showToast('删除失败: ' + e.message, 'error'); }
 }
 
 // ---- Food Recognition ----

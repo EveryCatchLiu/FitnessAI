@@ -9,7 +9,7 @@ from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
 
 from services.supabase_client import (
-    search_food_kcal, insert_meal_record, get_meal_records,
+    search_food_kcal, insert_meal_record, get_meal_records, delete_meal_record,
     get_daily_summary, get_today_total_kcal, upsert_user_profile, get_user_profile
 )
 from services.food_recognition import recognize_food, review_food_data
@@ -137,6 +137,14 @@ async def api_save_meals(data: dict):
 @app.get("/api/meals")
 async def api_get_meals(days: int = 7):
     return get_meal_records(days)
+
+
+@app.delete("/api/meals/{record_id}")
+async def api_delete_meal(record_id: int):
+    ok = delete_meal_record(record_id)
+    if ok:
+        return {"status": "ok"}
+    return JSONResponse({"status": "error", "detail": "Record not found"}, status_code=404)
 
 
 # ---- AI Advice ----
